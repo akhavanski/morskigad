@@ -100,37 +100,6 @@ class SnakeGame {
         // Keyboard controls
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
         
-        // Virtual keypad for mobile/touch
-        document.querySelectorAll('.key').forEach(key => {
-            // Touch events for better mobile responsiveness
-            key.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                key.classList.add('active');
-            });
-            
-            key.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                key.classList.remove('active');
-                const keyCode = key.dataset.key;
-                if (keyCode) {
-                    this.handleKeyPress({ code: keyCode, preventDefault: () => {} });
-                }
-            });
-            
-            key.addEventListener('touchcancel', (e) => {
-                e.preventDefault();
-                key.classList.remove('active');
-            });
-            
-            // Fallback for non-touch devices
-            key.addEventListener('click', (e) => {
-                e.preventDefault();
-                const keyCode = key.dataset.key;
-                if (keyCode) {
-                    this.handleKeyPress({ code: keyCode, preventDefault: () => {} });
-                }
-            });
-        });
         
         // Swipe gesture support on canvas
         this.setupSwipeGestures();
