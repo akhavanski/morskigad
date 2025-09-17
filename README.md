@@ -8,7 +8,12 @@ A static web implementation of the classic Snake game, featuring the iconic Noki
 - **Nokia LCD Green Theme**: Authentic retro visual styling
 - **Local High Scores**: Top 10 scores stored in browser localStorage
 - **Responsive Controls**: Arrow keys + ESC for pause
-- **Mobile Support**: Virtual keypad for touch devices
+- **Full Mobile Support**: 
+  - Responsive design for all screen sizes
+  - Swipe gesture controls
+  - Touch-friendly virtual keypad
+  - Haptic feedback (vibration)
+  - Optimized for portrait and landscape modes
 - **Static Site**: Pure HTML/CSS/JS - no server required!
 - **GitHub Pages Ready**: Deploy instantly to GitHub Pages
 
@@ -41,10 +46,17 @@ A static web implementation of the classic Snake game, featuring the iconic Noki
 
 ## Game Controls 🎮
 
+### Desktop Controls
 - **Arrow Keys**: Move the snake (↑ ↓ ← →)
 - **SPACE**: Start game / Restart after game over
 - **ESC**: Pause/Resume game
-- **Virtual Keypad**: Touch-friendly controls for mobile devices
+
+### Mobile Controls
+- **Swipe Gestures**: Swipe on the game area to move the snake
+  - Swipe up/down/left/right to change direction
+  - Tap the game area to start/restart/resume
+- **Virtual Keypad**: Touch-friendly button controls
+- **Haptic Feedback**: Vibration for food eating, game over, and high scores (if supported)
 
 ## Game Rules 📋
 

@@ -13,6 +13,11 @@ class SnakeGame {
         this.TICK_MS_DEFAULT = 150;
         this.TICK_MS_MIN = 70;
         
+        // Mobile detection
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                        ('ontouchstart' in window) || 
+                        (navigator.maxTouchPoints > 0);
+        
         // Game state
         this.gameState = 'menu'; // menu, playing, paused, game_over
         this.score = 0;
@@ -36,6 +41,15 @@ class SnakeGame {
         this.canvas.width = this.CANVAS_SIZE;
         this.canvas.height = this.CANVAS_SIZE;
         
+        // Mobile-specific optimizations
+        if (this.isMobile) {
+            // Disable image smoothing for crisp pixels on mobile
+            this.ctx.imageSmoothingEnabled = false;
+            this.ctx.webkitImageSmoothingEnabled = false;
+            this.ctx.mozImageSmoothingEnabled = false;
+            this.ctx.msImageSmoothingEnabled = false;
+        }
+        
         // UI elements
         this.scoreElement = document.getElementById('score');
         this.highScoreElement = document.getElementById('highScore');
@@ -47,6 +61,39 @@ class SnakeGame {
         this.updateUI();
         this.loadHighScores();
         this.draw();
+        
+        // Mobile-specific initialization
+        if (this.isMobile) {
+            this.initMobileFeatures();
+        }
+    }
+    
+    initMobileFeatures() {
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+        
+        // Update mobile instructions
+        this.updateMobileInstructions();
+    }
+    
+    updateMobileInstructions() {
+        if (this.gameState === 'menu') {
+            this.gameStateElement.innerHTML = 'Tap game area or press OK to start';
+        }
+    }
+    
+    // Mobile haptic feedback
+    vibrate(pattern = [50]) {
+        if (this.isMobile && navigator.vibrate) {
+            navigator.vibrate(pattern);
+        }
     }
     
     setupEventListeners() {
@@ -55,7 +102,29 @@ class SnakeGame {
         
         // Virtual keypad for mobile/touch
         document.querySelectorAll('.key').forEach(key => {
-            key.addEventListener('click', () => {
+            // Touch events for better mobile responsiveness
+            key.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                key.classList.add('active');
+            });
+            
+            key.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                key.classList.remove('active');
+                const keyCode = key.dataset.key;
+                if (keyCode) {
+                    this.handleKeyPress({ code: keyCode, preventDefault: () => {} });
+                }
+            });
+            
+            key.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                key.classList.remove('active');
+            });
+            
+            // Fallback for non-touch devices
+            key.addEventListener('click', (e) => {
+                e.preventDefault();
                 const keyCode = key.dataset.key;
                 if (keyCode) {
                     this.handleKeyPress({ code: keyCode, preventDefault: () => {} });
@@ -63,12 +132,117 @@ class SnakeGame {
             });
         });
         
+        // Swipe gesture support on canvas
+        this.setupSwipeGestures();
+        
         // Prevent default arrow key behavior
         document.addEventListener('keydown', (e) => {
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
                 e.preventDefault();
             }
         });
+        
+        // Prevent context menu on canvas (mobile)
+        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        
+        // Prevent scroll on touch devices when playing
+        document.addEventListener('touchmove', (e) => {
+            if (this.gameState === 'playing') {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    }
+    
+    setupSwipeGestures() {
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        const minSwipeDistance = 30;
+        
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+        });
+        
+        this.canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        });
+        
+        this.canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            
+            if (e.changedTouches.length === 0) return;
+            
+            const touch = e.changedTouches[0];
+            touchEndX = touch.clientX;
+            touchEndY = touch.clientY;
+            
+            this.handleSwipe(touchStartX, touchStartY, touchEndX, touchEndY, minSwipeDistance);
+        });
+        
+        // Mouse events for desktop testing
+        let mouseDown = false;
+        
+        this.canvas.addEventListener('mousedown', (e) => {
+            mouseDown = true;
+            touchStartX = e.clientX;
+            touchStartY = e.clientY;
+        });
+        
+        this.canvas.addEventListener('mouseup', (e) => {
+            if (mouseDown) {
+                touchEndX = e.clientX;
+                touchEndY = e.clientY;
+                this.handleSwipe(touchStartX, touchStartY, touchEndX, touchEndY, minSwipeDistance);
+                mouseDown = false;
+            }
+        });
+        
+        this.canvas.addEventListener('mouseleave', () => {
+            mouseDown = false;
+        });
+    }
+    
+    handleSwipe(startX, startY, endX, endY, minDistance) {
+        if (this.gameState !== 'playing') {
+            // If not playing, treat tap as start/restart
+            if (Math.abs(endX - startX) < 10 && Math.abs(endY - startY) < 10) {
+                if (this.gameState === 'menu' || this.gameState === 'game_over') {
+                    this.handleKeyPress({ code: 'Space', preventDefault: () => {} });
+                } else if (this.gameState === 'paused') {
+                    this.handleKeyPress({ code: 'Escape', preventDefault: () => {} });
+                }
+            }
+            return;
+        }
+        
+        const deltaX = endX - startX;
+        const deltaY = endY - startY;
+        const absDeltaX = Math.abs(deltaX);
+        const absDeltaY = Math.abs(deltaY);
+        
+        // Check if swipe is long enough
+        if (Math.max(absDeltaX, absDeltaY) < minDistance) return;
+        
+        // Determine swipe direction
+        if (absDeltaX > absDeltaY) {
+            // Horizontal swipe
+            if (deltaX > 0) {
+                this.changeDirection(1, 0); // Right
+            } else {
+                this.changeDirection(-1, 0); // Left
+            }
+        } else {
+            // Vertical swipe
+            if (deltaY > 0) {
+                this.changeDirection(0, 1); // Down
+            } else {
+                this.changeDirection(0, -1); // Up
+            }
+        }
     }
     
     handleKeyPress(e) {
@@ -162,10 +336,15 @@ class SnakeGame {
         this.gameState = 'game_over';
         this.stopGameLoop();
         
+        // Mobile haptic feedback for game over
+        this.vibrate([100, 50, 100]);
+        
         // Check for high score
         if (this.score > this.highScore) {
             this.highScore = this.score;
             this.saveHighScore();
+            // Extra vibration for new high score
+            this.vibrate([200, 100, 200, 100, 200]);
         }
         
         this.saveScore();
@@ -216,6 +395,9 @@ class SnakeGame {
             this.score += 1;
             this.spawnFood();
             this.updateUI();
+            
+            // Mobile haptic feedback for eating food
+            this.vibrate([30]);
             
             // Optional speedup (disabled as per requirements)
             // this.tickRate = Math.max(this.TICK_MS_MIN, this.tickRate - 2);
@@ -317,18 +499,29 @@ class SnakeGame {
         this.scoreElement.textContent = this.score;
         this.highScoreElement.textContent = this.highScore;
         
+        // Mobile-friendly text
+        const isMobile = this.isMobile;
+        
         switch (this.gameState) {
             case 'menu':
-                this.gameStateElement.textContent = 'Press SPACE to start';
+                this.gameStateElement.textContent = isMobile ? 
+                    'Tap game area or press OK to start' : 
+                    'Press SPACE to start';
                 break;
             case 'playing':
-                this.gameStateElement.textContent = 'Playing... ESC to pause';
+                this.gameStateElement.textContent = isMobile ? 
+                    'Playing... Tap ESC to pause' : 
+                    'Playing... ESC to pause';
                 break;
             case 'paused':
-                this.gameStateElement.textContent = 'PAUSED - ESC to resume';
+                this.gameStateElement.textContent = isMobile ? 
+                    'PAUSED - Tap ESC to resume' : 
+                    'PAUSED - ESC to resume';
                 break;
             case 'game_over':
-                this.gameStateElement.textContent = `Game Over! Score: ${this.score} - SPACE to restart`;
+                this.gameStateElement.textContent = isMobile ? 
+                    `Game Over! Score: ${this.score} - Tap OK to restart` : 
+                    `Game Over! Score: ${this.score} - SPACE to restart`;
                 break;
         }
     }
