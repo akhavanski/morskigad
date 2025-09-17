@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Nokia Web</title>
+    <style>
+        /* Nokia LCD Green Theme */
+        :root {
+            --nokia-bg: #9bb654;
+            --nokia-fg: #2a3d1a;
+            --nokia-border: #7a9a42;
+            --nokia-shadow: #5a7a32;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--nokia-bg) 0%, var(--nokia-border) 100%);
+            font-family: 'Courier New', monospace;
+            color: var(--nokia-fg);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .phone-container {
+            background: #333;
+            padding: 40px 20px;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .screen-container {
+            background: var(--nokia-bg);
+            padding: 15px;
+            border: 3px solid var(--nokia-shadow);
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            text-align: center;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        #gameCanvas {
+            border: 2px solid var(--nokia-fg);
+            background: var(--nokia-bg);
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        .controls {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .game-state {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+            min-height: 20px;
+        }
+
+        .highscores {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .highscores h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+
+        .score-entry {
+            margin: 2px 0;
+        }
+
+        .keypad {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 40px);
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .key {
+            width: 40px;
+            height: 30px;
+            background: #666;
+            border: 2px outset #888;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .key:active {
+            border-style: inset;
+        }
+
+        .key.arrow {
+            background: #555;
+        }
+
+        #name-input {
+            background: var(--nokia-bg);
+            border: 2px inset var(--nokia-shadow);
+            color: var(--nokia-fg);
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 4px;
+            text-align: center;
+            max-width: 80px;
+        }
+
+        /* GitHub Pages info banner */
+        .github-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(42, 61, 26, 0.9);
+            color: var(--nokia-bg);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            z-index: 1000;
+        }
+
+        .github-info a {
+            color: var(--nokia-bg);
+            text-decoration: none;
+        }
+
+        .github-info a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .github-info {
+                position: static;
+                margin-bottom: 20px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="github-info">
+        🐍 Hosted on <a href="https://github.com" target="_blank">GitHub Pages</a>
+    </div>
+
+    <div class="phone-container">
+        <div class="screen-container">
+            <h1>Snake Nokia</h1>
+            
+            <div class="game-info">
+                <div>Score: <span id="score">0</span></div>
+                <div>High: <span id="highScore">0</span></div>
+            </div>
+            
+            <canvas id="gameCanvas" width="360" height="360"></canvas>
+            
+            <div class="game-state" id="gameState">Press SPACE to start</div>
+            
+            <div class="controls">
+                Use arrow keys to move<br>
+                SPACE: Start/Restart | ESC: Pause
+            </div>
+
+            <div class="highscores" id="highscores">
+                <h3>High Scores</h3>
+                <div id="scoresList"></div>
+            </div>
+        </div>
+
+        <div class="keypad">
+            <div class="key"></div>
+            <div class="key arrow" data-key="ArrowUp">↑</div>
+            <div class="key"></div>
+            <div class="key arrow" data-key="ArrowLeft">←</div>
+            <div class="key" data-key="Space">OK</div>
+            <div class="key arrow" data-key="ArrowRight">→</div>
+            <div class="key"></div>
+            <div class="key arrow" data-key="ArrowDown">↓</div>
+            <div class="key" data-key="Escape">ESC</div>
+        </div>
+    </div>
+
+    <script src="snake.js"></script>
+</body>
+</html>
